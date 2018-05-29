@@ -36,6 +36,19 @@ NNVM_REGISTER_OP(tvm_op)
     return param.num_outputs;
   });
 
+template <typename T>
+T bswap(T val) {
+    T retVal;
+    char *pVal = (char*) &val;
+    char *pRetVal = (char*)&retVal;
+    int size = sizeof(T);
+    for(int i=0; i<size; i++) {
+        pRetVal[size-1-i] = pVal[i];
+    }
+
+    return retVal;
+}
+
 bool SaveDLTensor(dmlc::Stream* strm, DLTensor* tensor) {
   uint64_t header = kTVMNDArrayMagic, reserved = 0;
   strm->Write(&header, sizeof(header));
@@ -55,6 +68,14 @@ bool SaveDLTensor(dmlc::Stream* strm, DLTensor* tensor) {
   }
   int64_t data_byte_size = type_size * size;
   strm->Write(&data_byte_size, sizeof(data_byte_size));
+
+  float *data = (float*) tensor->data;
+
+  for (int i = 0; i < size; ++i) {
+    *data = bswap(*data);
+    data ++;
+  }
+
   strm->Write(tensor->data, data_byte_size);
   return true;
 }
